@@ -11,6 +11,9 @@ from asyncio import Protocol, get_event_loop
 from httptools import parse_url, HttpResponseParser
 from httptools.parser.parser import URL
 
+from .file import (has_file, is_file, read_inside, generate_boundary,
+    generate_body_multipart_form_data)
+
 __all__ = [
     'get',
     'post',
@@ -141,16 +144,25 @@ class Session(Protocol):
         }
         if data or body_json:
             if data:
-                self.body_params = "&".join(["%s=%s" % (key, value) for key, value in data.items()])
-                headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                if has_file(data):
+                    boundary = generate_boundary()
+                    headers['Content-Type'] = 'multipart/form-data; boundary=%s' % boundary
+                    self.body_params = generate_body_multipart_form_data(data, boundary)
+                else:
+                    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                    self.body_params = "&".join(["%s=%s" % (key, read_inside(value)) for key, value in data.items()])
             elif body_json:
-                self.body_params = json.dumps(body_json)
-                headers['Content-Type'] = 'application/json'
+                if has_file(body_json):
+                    headers['Content-Type'] = 'multipart/form-data'
+                else:
+                    self.body_params = json.dumps(body_json)
+                    headers['Content-Type'] = 'application/json'
             headers['Content-Length'] = len(self.body_params)
 
         return headers
 
     def send_request_body(self):
+        print(self.body_params)
         self.transport.write(self.body_params.encode('utf8'))
 
     def clear(self):
