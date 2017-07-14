@@ -7,7 +7,7 @@ The API tries to be like legendery requests.
 
 setup(
     name='asyncrequests',
-    version='0.1.0',
+    version='0.1.1',
 
     description='Asynchronous Http Client for asyncio',
     long_description=long_description,
